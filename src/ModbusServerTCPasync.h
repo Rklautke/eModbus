@@ -28,6 +28,9 @@
 using std::lock_guard;
 #endif
 
+// Specal function signature for broadcast or sniffer listeners
+using MSRlistener = std::function<void(ModbusMessage msg)>;
+
 class ModbusServerTCPasync : public ModbusServer {
 
  private:
@@ -75,6 +78,9 @@ class ModbusServerTCPasync : public ModbusServer {
   // isRunning: return true is server is running
   bool isRunning();
 
+  // Even more special: register a sniffer worker
+  void registerSniffer(MSRlistener worker);
+
  protected:
   void onClientConnect(AsyncClient* client);
   void onClientDisconnect(mb_client* client);
@@ -86,6 +92,7 @@ class ModbusServerTCPasync : public ModbusServer {
   #if USE_MUTEX
   std::mutex cListLock;  // client list protection
   #endif
+  MSRlistener sniffer;                   // Sniffer listener
 };
 
 #endif
