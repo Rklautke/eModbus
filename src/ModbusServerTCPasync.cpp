@@ -47,6 +47,12 @@ void ModbusServerTCPasync::mb_client::onData(uint8_t* data, size_t len) {
     while (message->size() < 8 && i < len) {
       message->push_back(data[i++]);
     }
+
+    // Do we have a sniffer listening?
+    if (server->sniffer&& message) {
+      // Yes. call it
+      server->sniffer(*message);
+    }
     
     // 2. preliminary validation: protocol bytes and message length
     if ((*message)[2] != 0 || (*message)[3] != 0) {
@@ -178,6 +184,7 @@ ModbusServerTCPasync::ModbusServerTCPasync() :
   server(nullptr),
   clients(),
   maxNoClients(5),
+  sniffer(nullptr),
   idle_timeout(60000) {
     // setup will be done in 'start'
 }
@@ -194,6 +201,14 @@ uint16_t ModbusServerTCPasync::activeClients() {
   return clients.size();
 }
 
+// Even more special: register a sniffer worker
+void ModbusServerTCPasync::registerSniffer(MSRlistener worker) {
+  // If there is one already, it will be overwritten!
+  // This holds true for the broadcast worker as well,
+  // so a sniffer never will do else but to sniff on broadcast requests!
+  sniffer = worker;
+  LOG_D("Registered sniffer\n");
+}
 
 bool ModbusServerTCPasync::start(uint16_t port, uint8_t maxClients, uint32_t timeout, int coreID) {
   // don't restart if already running
