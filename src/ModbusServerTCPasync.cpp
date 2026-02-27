@@ -47,12 +47,6 @@ void ModbusServerTCPasync::mb_client::onData(uint8_t* data, size_t len) {
     while (message->size() < 8 && i < len) {
       message->push_back(data[i++]);
     }
-
-    // Do we have a sniffer listening?
-    if (server->sniffer&& message) {
-      // Yes. call it
-      server->sniffer(*message);
-    }
     
     // 2. preliminary validation: protocol bytes and message length
     if ((*message)[2] != 0 || (*message)[3] != 0) {
@@ -65,6 +59,12 @@ void ModbusServerTCPasync::mb_client::onData(uint8_t* data, size_t len) {
       LOG_D("max length error\n");
     }
     if (error != SUCCESS) {
+      // Do we have a sniffer listening?
+      if (server->sniffer&& message) {
+        // Yes. call it
+        server->sniffer(*message);
+      }
+
       ModbusMessage response;
       response.setError(message->getServerID(), message->getFunctionCode(), error);
       message->resize(4);
@@ -85,6 +85,12 @@ void ModbusServerTCPasync::mb_client::onData(uint8_t* data, size_t len) {
     } else {
       LOG_D("request incomplete (len:%d), waiting for next TCP packet\n", message->size());
       continue;
+    }
+
+    // Do we have a sniffer listening?
+    if (server->sniffer&& message) {
+      // Yes. call it
+      server->sniffer(*message);
     }
 
     // 4. request complete, process
